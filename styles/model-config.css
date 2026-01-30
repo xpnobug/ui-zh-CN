@@ -3168,3 +3168,115 @@
     display: none;
   }
 }
+
+/* ===========================================
+   Folder Items - 文件夹项
+   =========================================== */
+
+/* 文件夹项 / Folder item */
+.ws-folder-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--bg-accent);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
+}
+
+:root[data-theme="light"] .ws-folder-item {
+  background: var(--bg-hover);
+}
+
+.ws-folder-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+.ws-folder-item--has-active {
+  border-color: var(--accent);
+  border-style: dashed;
+}
+
+.ws-folder-item__chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: transform var(--duration-fast) ease;
+}
+
+.ws-folder-item__chevron svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ws-folder-item__icon {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.ws-folder-item__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ws-folder-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ws-folder-item__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ws-folder-item__count {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.ws-folder-item__desc {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* 缩进的文件项 / Indented file items */
+.ws-file-item--indent {
+  margin-left: 20px;
+  width: calc(100% - 20px);
+}
+
+/* 移动端适配 / Mobile responsiveness */
+@media (max-width: 768px) {
+  .ws-folder-item__desc {
+    display: none;
+  }
+
+  .ws-file-item--indent {
+    margin-left: 12px;
+    width: calc(100% - 12px);
+  }
+}
+

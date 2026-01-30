@@ -136,12 +136,14 @@ export type ModelConfigProps = {
   workspaceSaving: boolean;
   workspaceError: string | null;
   workspaceEditorMode: "edit" | "preview" | "split";
+  expandedFolders?: Set<string>;
   onWorkspaceFileSelect: (fileName: string) => void;
   onWorkspaceContentChange: (content: string) => void;
   onWorkspaceFileSave: () => void;
   onWorkspaceRefresh: () => void;
   onWorkspaceModeChange: (mode: "edit" | "preview" | "split") => void;
   onWorkspaceFileCreate: (fileName: string) => void;
+  onFolderToggle?: (folderName: string) => void;
 
   // 权限管理相关 / Permissions props
   permissionsLoading: boolean;
@@ -269,12 +271,14 @@ function renderContentSection(props: ModelConfigProps, section: string) {
         saving: props.workspaceSaving,
         error: props.workspaceError,
         editorMode: props.workspaceEditorMode,
+        expandedFolders: props.expandedFolders,
         onFileSelect: props.onWorkspaceFileSelect,
         onContentChange: props.onWorkspaceContentChange,
         onFileSave: props.onWorkspaceFileSave,
         onRefresh: props.onWorkspaceRefresh,
         onModeChange: props.onWorkspaceModeChange,
         onFileCreate: props.onWorkspaceFileCreate,
+        onFolderToggle: props.onFolderToggle,
       });
 
     case "permissions":

@@ -40,6 +40,8 @@ export type WorkspaceContentProps = {
   error: string | null;
   /** 编辑模式：edit=编辑, preview=预览, split=分屏 / Editor mode */
   editorMode: "edit" | "preview" | "split";
+  /** 展开的文件夹集合 / Set of expanded folders */
+  expandedFolders?: Set<string>;
 
   // 回调函数 / Callbacks
   /** 选择文件 / Select file */
@@ -54,6 +56,8 @@ export type WorkspaceContentProps = {
   onModeChange: (mode: "edit" | "preview" | "split") => void;
   /** 创建新文件 / Create new file */
   onFileCreate: (fileName: string) => void;
+  /** 切换文件夹展开状态 / Toggle folder expansion */
+  onFolderToggle?: (folderName: string) => void;
 };
 
 // ─── SVG 图标 / Icons ──────────────────────────────────────────────────────
@@ -75,6 +79,10 @@ const icons = {
   refresh: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>`,
   // 加号图标 / Plus icon
   plus: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+  // 展开箭头 / Chevron right (collapsed)
+  chevronRight: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>`,
+  // 收起箭头 / Chevron down (expanded)
+  chevronDown: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
 };
 
 // ─── 中文标签 / Labels ──────────────────────────────────────────────────────
@@ -115,6 +123,29 @@ const FILE_DESCRIPTIONS: Record<string, string> = {
   "memory.md": "持久记忆 (小写) - Agent 的长期记忆",
   "AGENTS.md": "Agent 配置 - 多 Agent 协作设置",
 };
+
+/**
+ * 获取文件描述，支持 memory/ 目录下的日期文件
+ * Get file description, supports dated files in memory/ directory
+ */
+function getFileDescription(fileName: string): string {
+  // Check static descriptions first
+  if (FILE_DESCRIPTIONS[fileName]) {
+    return FILE_DESCRIPTIONS[fileName];
+  }
+
+  // Handle memory/ directory files (memory/YYYY-MM-DD.md)
+  if (fileName.startsWith("memory/")) {
+    const dateMatch = fileName.match(/^memory\/(\d{4})-(\d{2})-(\d{2})\.md$/);
+    if (dateMatch) {
+      const [, year, month, day] = dateMatch;
+      return `每日日志 - ${year}年${month}月${day}日的记录`;
+    }
+    return "每日日志 - 日期记录文件";
+  }
+
+  return "";
+}
 
 // ─── 辅助函数 / Helpers ─────────────────────────────────────────────────────
 
@@ -198,16 +229,129 @@ function renderMarkdownToHtml(md: string): string {
   return processed.join("\n");
 }
 
+// ─── 文件分组 / Group files by directory ──────────────────────────────────
+
+type FileGroup = {
+  /** 文件夹名称（null 表示根目录）/ Folder name (null = root) */
+  folder: string | null;
+  /** 文件夹描述 / Folder description */
+  desc: string;
+  /** 文件列表 / File list */
+  files: WorkspaceFileInfo[];
+};
+
+const FOLDER_DESCRIPTIONS: Record<string, string> = {
+  memory: "每日日志 - 按日期存放的记录文件",
+};
+
+/**
+ * 将文件列表按目录分组
+ * Group file list by directory
+ */
+function groupFilesByFolder(files: WorkspaceFileInfo[]): FileGroup[] {
+  const rootFiles: WorkspaceFileInfo[] = [];
+  const folderMap = new Map<string, WorkspaceFileInfo[]>();
+
+  for (const file of files) {
+    const slashIdx = file.name.indexOf("/");
+    if (slashIdx === -1) {
+      rootFiles.push(file);
+    } else {
+      const folder = file.name.slice(0, slashIdx);
+      if (!folderMap.has(folder)) {
+        folderMap.set(folder, []);
+      }
+      folderMap.get(folder)!.push(file);
+    }
+  }
+
+  const groups: FileGroup[] = [];
+
+  // Root files first / 根目录文件优先
+  if (rootFiles.length > 0) {
+    groups.push({ folder: null, desc: "", files: rootFiles });
+  }
+
+  // Then folders / 然后是文件夹
+  for (const [folder, folderFiles] of folderMap) {
+    groups.push({
+      folder,
+      desc: FOLDER_DESCRIPTIONS[folder] ?? "",
+      files: folderFiles,
+    });
+  }
+
+  return groups;
+}
+
+// ─── 渲染单个文件项 / Render single file item ──────────────────────────────
+
+function renderFileItem(
+  file: WorkspaceFileInfo,
+  props: WorkspaceContentProps,
+  hasChanges: boolean,
+  indent = false,
+) {
+  const isSelected = props.selectedFile === file.name;
+  const desc = getFileDescription(file.name);
+  // For indented items, only show the base name / 缩进项只显示基础文件名
+  const displayName = indent && file.name.includes("/")
+    ? file.name.slice(file.name.lastIndexOf("/") + 1)
+    : file.name;
+
+  return html`
+    <button
+      class="ws-file-item ${isSelected ? "ws-file-item--active" : ""} ${!file.exists ? "ws-file-item--missing" : ""} ${indent ? "ws-file-item--indent" : ""}"
+      @click=${() => props.onFileSelect(file.name)}
+      title=${file.path}
+    >
+      <span class="ws-file-item__icon">${icons.file}</span>
+      <span class="ws-file-item__info">
+        <span class="ws-file-item__name">
+          ${displayName}
+          ${!file.exists
+            ? html`<span class="ws-file-item__badge ws-file-item__badge--new">新建</span>`
+            : nothing}
+          ${isSelected && hasChanges
+            ? html`<span class="ws-file-item__badge ws-file-item__badge--unsaved">${LABELS.unsaved}</span>`
+            : nothing}
+        </span>
+        <span class="ws-file-item__desc">${desc}</span>
+        ${file.exists
+          ? html`<span class="ws-file-item__meta">${formatSize(file.size)} · ${formatTime(file.modifiedAt)}</span>`
+          : nothing}
+      </span>
+    </button>
+  `;
+}
+
 // ─── 渲染文件列表 / Render file list ──────────────────────────────────────
 
 function renderFileList(props: WorkspaceContentProps) {
-  const hasChanges =
-    props.selectedFile && props.editorContent !== props.originalContent;
+  const hasChanges = !!(
+    props.selectedFile && props.editorContent !== props.originalContent
+  );
+  const groups = groupFilesByFolder(props.files);
+  const expandedFolders = props.expandedFolders ?? new Set<string>();
 
   return html`
     <div class="ws-file-list">
       <div class="ws-file-list__header">
         <div class="ws-file-list__title">${LABELS.filesTitle}</div>
+        <button
+          class="mc-btn mc-btn--sm"
+          ?disabled=${props.loading}
+          @click=${() => {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, "0");
+            const dd = String(today.getDate()).padStart(2, "0");
+            props.onFileCreate(`memory/${yyyy}-${mm}-${dd}.md`);
+          }}
+          title="创建今日日志"
+        >
+          ${icons.plus}
+        </button>
         <button
           class="mc-btn mc-btn--sm"
           ?disabled=${props.loading}
@@ -218,32 +362,48 @@ function renderFileList(props: WorkspaceContentProps) {
         </button>
       </div>
       <div class="ws-file-list__body">
-        ${props.files.map((file) => {
-          const isSelected = props.selectedFile === file.name;
-          const desc = FILE_DESCRIPTIONS[file.name] ?? "";
+        ${groups.map((group) => {
+          // Root files: render directly / 根目录文件直接渲染
+          if (group.folder === null) {
+            return group.files.map((file) =>
+              renderFileItem(file, props, hasChanges, false),
+            );
+          }
+
+          // Folder group: render as collapsible / 文件夹：渲染为可展开
+          const folderName = group.folder;
+          const isExpanded = expandedFolders.has(folderName);
+          const fileCount = group.files.length;
+          // Check if any child is selected / 检查是否有子文件被选中
+          const hasSelectedChild = group.files.some(
+            (f) => f.name === props.selectedFile,
+          );
+
           return html`
             <button
-              class="ws-file-item ${isSelected ? "ws-file-item--active" : ""} ${!file.exists ? "ws-file-item--missing" : ""}"
-              @click=${() => props.onFileSelect(file.name)}
-              title=${file.path}
+              class="ws-folder-item ${hasSelectedChild ? "ws-folder-item--has-active" : ""}"
+              @click=${() => props.onFolderToggle?.(folderName)}
+              title="${folderName}/ (${fileCount} 个文件)"
             >
-              <span class="ws-file-item__icon">${icons.file}</span>
-              <span class="ws-file-item__info">
-                <span class="ws-file-item__name">
-                  ${file.name}
-                  ${!file.exists
-                    ? html`<span class="ws-file-item__badge ws-file-item__badge--new">新建</span>`
-                    : nothing}
-                  ${isSelected && hasChanges
-                    ? html`<span class="ws-file-item__badge ws-file-item__badge--unsaved">${LABELS.unsaved}</span>`
-                    : nothing}
+              <span class="ws-folder-item__chevron">
+                ${isExpanded ? icons.chevronDown : icons.chevronRight}
+              </span>
+              <span class="ws-folder-item__icon">${icons.folder}</span>
+              <span class="ws-folder-item__info">
+                <span class="ws-folder-item__name">
+                  ${folderName}/
+                  <span class="ws-folder-item__count">${fileCount}</span>
                 </span>
-                <span class="ws-file-item__desc">${desc}</span>
-                ${file.exists
-                  ? html`<span class="ws-file-item__meta">${formatSize(file.size)} · ${formatTime(file.modifiedAt)}</span>`
+                ${group.desc
+                  ? html`<span class="ws-folder-item__desc">${group.desc}</span>`
                   : nothing}
               </span>
             </button>
+            ${isExpanded
+              ? group.files.map((file) =>
+                  renderFileItem(file, props, hasChanges, true),
+                )
+              : nothing}
           `;
         })}
       </div>
