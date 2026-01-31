@@ -221,15 +221,18 @@ function extractProviders(
     result[key] = {
       baseUrl: (provider.baseUrl as string) ?? "",
       apiKey: (provider.apiKey as string) ?? "",
-      api: (provider.api as "openai-completions" | "anthropic-messages") ?? "openai-completions",
+      auth: provider.auth as ProviderConfig["auth"],
+      api: (provider.api as ProviderConfig["api"]) ?? "openai-completions",
+      headers: provider.headers as Record<string, string> | undefined,
       models: (modelsArray ?? []).map((m) => ({
         id: (m.id as string) ?? "",
         name: (m.name as string) ?? "",
         reasoning: (m.reasoning as boolean) ?? false,
-        input: (m.input as string[]) ?? ["text"],
+        input: (m.input as Array<"text" | "image">) ?? ["text"],
         contextWindow: (m.contextWindow as number) ?? 128000,
         maxTokens: (m.maxTokens as number) ?? 4096,
         cost: m.cost as ModelConfig["cost"],
+        compat: m.compat as ModelConfig["compat"],
       })),
     };
   }

@@ -369,15 +369,14 @@ function renderModelAdvanced(
                 <span class="mc-compat-select__label">${LABELS.compatMaxTokens}:</span>
                 <select
                   class="mc-select mc-select--sm"
-                  .value=${compat.maxTokensField ?? "max_tokens"}
                   @change=${(e: Event) =>
                     props.onModelUpdate(providerKey, index, "compat", {
                       ...compat,
                       maxTokensField: (e.target as HTMLSelectElement).value as "max_tokens" | "max_completion_tokens",
                     })}
                 >
-                  <option value="max_tokens">${LABELS.maxTokensField}</option>
-                  <option value="max_completion_tokens">${LABELS.maxCompletionTokensField}</option>
+                  <option value="max_tokens" .selected=${(compat.maxTokensField ?? "max_tokens") === "max_tokens"}>${LABELS.maxTokensField}</option>
+                  <option value="max_completion_tokens" .selected=${compat.maxTokensField === "max_completion_tokens"}>${LABELS.maxCompletionTokensField}</option>
                 </select>
               </div>
             </div>
@@ -564,12 +563,11 @@ function renderProviderCard(
                     <span class="mc-field__label">${LABELS.providerProtocol}</span>
                     <select
                       class="mc-select"
-                      .value=${provider.api}
                       @change=${(e: Event) =>
                         props.onProviderUpdate(key, "api", (e.target as HTMLSelectElement).value)}
                     >
                       ${API_PROTOCOLS.map(
-                        (p) => html`<option value=${p.value} title=${p.hint}>${p.label}</option>`,
+                        (p) => html`<option value=${p.value} title=${p.hint} .selected=${provider.api === p.value}>${p.label}</option>`,
                       )}
                     </select>
                   </label>
@@ -577,12 +575,11 @@ function renderProviderCard(
                     <span class="mc-field__label">${LABELS.providerAuth}</span>
                     <select
                       class="mc-select"
-                      .value=${authMode}
                       @change=${(e: Event) =>
                         props.onProviderUpdate(key, "auth", (e.target as HTMLSelectElement).value)}
                     >
                       ${AUTH_MODES.map(
-                        (a) => html`<option value=${a.value} title=${a.hint}>${a.label}</option>`,
+                        (a) => html`<option value=${a.value} title=${a.hint} .selected=${(provider.auth ?? "api-key") === a.value}>${a.label}</option>`,
                       )}
                     </select>
                   </label>
