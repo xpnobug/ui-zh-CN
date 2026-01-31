@@ -13,6 +13,7 @@ const icons = {
   chevron: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
   settings: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`,
   info: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`,
+  close: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
 };
 
 // API 协议配置
@@ -39,8 +40,11 @@ const LABELS = {
   providersDesc: "配置 LLM 模型供应商，支持 OpenAI、Anthropic、Google、AWS Bedrock 等",
   addProvider: "添加供应商",
   providerName: "供应商名称",
+  providerNamePlaceholder: "输入供应商名称，如: openai、my-ollama",
   providerBaseUrl: "API 地址",
+  providerBaseUrlPlaceholder: "https://api.example.com/v1",
   providerApiKey: "API 密钥",
+  providerApiKeyPlaceholder: "sk-... 或 ${ENV_VAR}",
   providerProtocol: "API 协议",
   providerAuth: "认证方式",
   providerHeaders: "自定义 Headers",
@@ -75,11 +79,38 @@ const LABELS = {
   compatMaxTokens: "max_tokens 字段",
   maxTokensField: "max_tokens",
   maxCompletionTokensField: "max_completion_tokens",
+  // 弹窗相关
+  createProvider: "创建供应商",
+  cancel: "取消",
+  confirm: "确认创建",
+};
+
+// 新建供应商表单状态
+export type ProviderFormState = {
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  api: ModelApi;
+  auth: AuthMode;
+};
+
+// 默认表单状态
+const DEFAULT_PROVIDER_FORM: ProviderFormState = {
+  name: "",
+  baseUrl: "",
+  apiKey: "",
+  api: "openai-completions",
+  auth: "api-key",
 };
 
 export type ProvidersContentProps = {
   providers: Record<string, ProviderConfig>;
   expandedProviders: Set<string>;
+  // 新建供应商弹窗状态
+  showAddModal?: boolean;
+  addForm?: ProviderFormState;
+  addError?: string | null;
+  // 回调函数
   onProviderToggle: (key: string) => void;
   onProviderAdd: () => void;
   onProviderRemove: (key: string) => void;
@@ -88,6 +119,10 @@ export type ProvidersContentProps = {
   onModelAdd: (providerKey: string) => void;
   onModelRemove: (providerKey: string, modelIndex: number) => void;
   onModelUpdate: (providerKey: string, modelIndex: number, field: string, value: unknown) => void;
+  // 弹窗回调
+  onShowAddModal?: (show: boolean) => void;
+  onAddFormChange?: (patch: Partial<ProviderFormState>) => void;
+  onAddConfirm?: () => void;
 };
 
 /**
@@ -629,10 +664,153 @@ function renderProviderCard(
 }
 
 /**
+ * 渲染添加供应商弹窗
+ */
+function renderAddProviderModal(props: ProvidersContentProps) {
+  if (!props.showAddModal) return nothing;
+
+  const form = props.addForm ?? DEFAULT_PROVIDER_FORM;
+  const onFormChange = props.onAddFormChange ?? (() => {});
+  const onShowAddModal = props.onShowAddModal ?? (() => {});
+  const onAddConfirm = props.onAddConfirm ?? (() => {});
+  const showApiKey = form.auth === "api-key" || form.auth === "token";
+
+  const handleClose = () => {
+    onShowAddModal(false);
+  };
+
+  const handleSubmit = () => {
+    onAddConfirm();
+  };
+
+  return html`
+    <div class="cron-confirm-modal" @click=${handleClose}>
+      <div class="cron-create-modal__content" @click=${(e: Event) => e.stopPropagation()}>
+        <div class="cron-create-modal__header">
+          <div class="cron-create-modal__title">
+            ${icons.provider}
+            <span>${LABELS.createProvider}</span>
+          </div>
+          <button class="cron-create-modal__close" @click=${handleClose}>
+            ${icons.close}
+          </button>
+        </div>
+
+        <div class="cron-create-modal__body">
+          <!-- 供应商名称 -->
+          <div class="mc-field" style="margin-bottom: 16px;">
+            <label class="mc-field__label">${LABELS.providerName}</label>
+            <input
+              type="text"
+              class="mc-input"
+              placeholder=${LABELS.providerNamePlaceholder}
+              .value=${form.name}
+              @input=${(e: Event) =>
+                onFormChange({ name: (e.target as HTMLInputElement).value })}
+            />
+          </div>
+
+          <!-- API 地址 -->
+          <div class="mc-field" style="margin-bottom: 16px;">
+            <label class="mc-field__label">${LABELS.providerBaseUrl}</label>
+            <input
+              type="text"
+              class="mc-input"
+              placeholder=${LABELS.providerBaseUrlPlaceholder}
+              .value=${form.baseUrl}
+              @input=${(e: Event) =>
+                onFormChange({ baseUrl: (e.target as HTMLInputElement).value })}
+            />
+          </div>
+
+          <!-- API 协议和认证方式 -->
+          <div class="cron-form-grid" style="margin-bottom: 16px;">
+            <div class="mc-field">
+              <label class="mc-field__label">${LABELS.providerProtocol}</label>
+              <select
+                class="mc-select"
+                @change=${(e: Event) =>
+                  onFormChange({ api: (e.target as HTMLSelectElement).value as ModelApi })}
+              >
+                ${API_PROTOCOLS.map(
+                  (p) => html`<option value=${p.value} title=${p.hint} .selected=${form.api === p.value}>${p.label}</option>`,
+                )}
+              </select>
+            </div>
+            <div class="mc-field">
+              <label class="mc-field__label">${LABELS.providerAuth}</label>
+              <select
+                class="mc-select"
+                @change=${(e: Event) =>
+                  onFormChange({ auth: (e.target as HTMLSelectElement).value as AuthMode })}
+              >
+                ${AUTH_MODES.map(
+                  (a) => html`<option value=${a.value} title=${a.hint} .selected=${form.auth === a.value}>${a.label}</option>`,
+                )}
+              </select>
+            </div>
+          </div>
+
+          <!-- API 密钥 -->
+          ${showApiKey
+            ? html`
+                <div class="mc-field" style="margin-bottom: 16px;">
+                  <label class="mc-field__label">${LABELS.providerApiKey}</label>
+                  <input
+                    type="password"
+                    class="mc-input"
+                    placeholder=${LABELS.providerApiKeyPlaceholder}
+                    .value=${form.apiKey}
+                    @input=${(e: Event) =>
+                      onFormChange({ apiKey: (e.target as HTMLInputElement).value })}
+                  />
+                </div>
+              `
+            : nothing}
+
+          <!-- 错误提示 -->
+          ${props.addError
+            ? html`
+                <div class="cron-error-banner">
+                  ${icons.info}
+                  <span>${props.addError}</span>
+                </div>
+              `
+            : nothing}
+        </div>
+
+        <div class="cron-create-modal__footer">
+          <button class="mc-btn" @click=${handleClose}>
+            ${LABELS.cancel}
+          </button>
+          <button
+            class="mc-btn mc-btn--primary"
+            ?disabled=${!form.name.trim()}
+            @click=${handleSubmit}
+          >
+            ${LABELS.confirm}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
  * 渲染供应商配置内容
  */
 export function renderProvidersContent(props: ProvidersContentProps) {
   const providerKeys = Object.keys(props.providers);
+  const onShowAddModal = props.onShowAddModal ?? (() => {});
+
+  // 兼容旧逻辑：如果没有提供 onShowAddModal，则直接调用 onProviderAdd
+  const handleAddClick = () => {
+    if (props.onShowAddModal) {
+      onShowAddModal(true);
+    } else {
+      props.onProviderAdd();
+    }
+  };
 
   return html`
     <div class="config-content">
@@ -642,7 +820,7 @@ export function renderProvidersContent(props: ProvidersContentProps) {
           <h2 class="config-content__title">${LABELS.providersTitle}</h2>
           <p class="config-content__desc">${LABELS.providersDesc}</p>
         </div>
-        <button class="mc-btn mc-btn--primary" @click=${props.onProviderAdd}>
+        <button class="mc-btn mc-btn--primary" @click=${handleAddClick}>
           ${icons.add}
           <span>${LABELS.addProvider}</span>
         </button>
@@ -737,6 +915,9 @@ export function renderProvidersContent(props: ProvidersContentProps) {
               </div>
             `}
       </div>
+
+      <!-- 添加供应商弹窗 -->
+      ${renderAddProviderModal(props)}
     </div>
   `;
 }

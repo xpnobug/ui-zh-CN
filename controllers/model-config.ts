@@ -27,6 +27,7 @@ import type {
 } from "../views/model-config";
 import type { ConfigSectionId } from "../types/config-sections";
 import type { ChannelsConfigData } from "../types/channel-config";
+import type { ProviderFormState } from "../components/providers-content";
 import type {
   ExecApprovalsSnapshot,
   ExecApprovalsFile,
@@ -196,6 +197,11 @@ export type ModelConfigState = {
   cronRuns: CronRunLogEntry[];
   cronExpandedJobId: string | null;
   cronDeleteConfirmJobId: string | null;
+
+  // 添加供应商弹窗状态 / Add provider modal state
+  addProviderModalShow: boolean;
+  addProviderForm: ProviderFormState;
+  addProviderError: string | null;
 };
 
 /**
@@ -795,6 +801,87 @@ export function addProvider(state: ModelConfigState): void {
     ...state.modelConfigExpandedProviders,
     baseName,
   ]);
+}
+
+/**
+ * 默认添加供应商表单
+ */
+const DEFAULT_ADD_PROVIDER_FORM: ProviderFormState = {
+  name: "",
+  baseUrl: "",
+  apiKey: "",
+  api: "openai-completions",
+  auth: "api-key",
+};
+
+/**
+ * 显示/隐藏添加供应商弹窗
+ */
+export function showAddProviderModal(state: ModelConfigState, show: boolean): void {
+  state.addProviderModalShow = show;
+  if (show) {
+    // 打开弹窗时重置表单
+    state.addProviderForm = { ...DEFAULT_ADD_PROVIDER_FORM };
+    state.addProviderError = null;
+  }
+}
+
+/**
+ * 更新添加供应商表单
+ */
+export function updateAddProviderForm(
+  state: ModelConfigState,
+  patch: Partial<ProviderFormState>,
+): void {
+  state.addProviderForm = {
+    ...state.addProviderForm,
+    ...patch,
+  };
+  // 清除之前的错误
+  state.addProviderError = null;
+}
+
+/**
+ * 确认添加供应商
+ */
+export function confirmAddProvider(state: ModelConfigState): void {
+  const form = state.addProviderForm;
+  const name = form.name.trim();
+
+  // 验证名称
+  if (!name) {
+    state.addProviderError = "请输入供应商名称";
+    return;
+  }
+
+  // 检查名称是否已存在
+  if (state.modelConfigProviders[name]) {
+    state.addProviderError = `供应商名称 "${name}" 已存在`;
+    return;
+  }
+
+  // 创建新供应商
+  state.modelConfigProviders = {
+    ...state.modelConfigProviders,
+    [name]: {
+      baseUrl: form.baseUrl,
+      apiKey: form.apiKey || undefined,
+      auth: form.auth,
+      api: form.api,
+      models: [],
+    },
+  };
+
+  // 展开新添加的供应商
+  state.modelConfigExpandedProviders = new Set([
+    ...state.modelConfigExpandedProviders,
+    name,
+  ]);
+
+  // 关闭弹窗
+  state.addProviderModalShow = false;
+  state.addProviderForm = { ...DEFAULT_ADD_PROVIDER_FORM };
+  state.addProviderError = null;
 }
 
 /**

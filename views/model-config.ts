@@ -154,6 +154,14 @@ export type ModelConfigProps = {
   // 展开状态
   expandedProviders: Set<string>;
 
+  // 添加供应商弹窗状态
+  showAddProviderModal?: boolean;
+  addProviderForm?: import("../components/providers-content").ProviderFormState;
+  addProviderError?: string | null;
+  onShowAddProviderModal?: (show: boolean) => void;
+  onAddProviderFormChange?: (patch: Partial<import("../components/providers-content").ProviderFormState>) => void;
+  onAddProviderConfirm?: () => void;
+
   // 当前选中的配置区块
   activeSection?: string;
 
@@ -349,6 +357,14 @@ function renderContentSection(props: ModelConfigProps, section: string) {
       return renderProvidersContent({
         providers: props.providers,
         expandedProviders: props.expandedProviders,
+        // 添加供应商弹窗
+        showAddModal: props.showAddProviderModal,
+        addForm: props.addProviderForm,
+        addError: props.addProviderError,
+        onShowAddModal: props.onShowAddProviderModal,
+        onAddFormChange: props.onAddProviderFormChange,
+        onAddConfirm: props.onAddProviderConfirm,
+        // 回调
         onProviderToggle: props.onProviderToggle,
         onProviderAdd: props.onProviderAdd,
         onProviderRemove: props.onProviderRemove,
@@ -551,6 +567,14 @@ function renderContentSection(props: ModelConfigProps, section: string) {
       return renderProvidersContent({
         providers: props.providers,
         expandedProviders: props.expandedProviders,
+        // 添加供应商弹窗
+        showAddModal: props.showAddProviderModal,
+        addForm: props.addProviderForm,
+        addError: props.addProviderError,
+        onShowAddModal: props.onShowAddProviderModal,
+        onAddFormChange: props.onAddProviderFormChange,
+        onAddConfirm: props.onAddProviderConfirm,
+        // 回调
         onProviderToggle: props.onProviderToggle,
         onProviderAdd: props.onProviderAdd,
         onProviderRemove: props.onProviderRemove,
