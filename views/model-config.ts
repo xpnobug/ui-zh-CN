@@ -60,26 +60,48 @@ const LABELS = {
 };
 
 // 类型定义
+export type ModelApi =
+  | "openai-completions"
+  | "openai-responses"
+  | "anthropic-messages"
+  | "google-generative-ai"
+  | "github-copilot"
+  | "bedrock-converse-stream";
+
+export type AuthMode = "api-key" | "aws-sdk" | "oauth" | "token";
+
 export type ProviderConfig = {
   baseUrl: string;
-  apiKey: string;
-  api: "openai-completions" | "anthropic-messages";
+  apiKey?: string;
+  auth?: AuthMode;
+  api: ModelApi;
+  headers?: Record<string, string>;
   models: ModelConfig[];
+};
+
+export type ModelCost = {
+  input: number;
+  output: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+};
+
+export type ModelCompat = {
+  supportsStore?: boolean;
+  supportsDeveloperRole?: boolean;
+  supportsReasoningEffort?: boolean;
+  maxTokensField?: "max_completion_tokens" | "max_tokens";
 };
 
 export type ModelConfig = {
   id: string;
   name: string;
   reasoning: boolean;
-  input: string[];
+  input: Array<"text" | "image">;
   contextWindow: number;
   maxTokens: number;
-  cost?: {
-    input: number;
-    output: number;
-    cacheRead?: number;
-    cacheWrite?: number;
-  };
+  cost?: ModelCost;
+  compat?: ModelCompat;
 };
 
 export type AgentDefaults = {
