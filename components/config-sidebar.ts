@@ -20,6 +20,8 @@ const icons = {
   workspace: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`,
   // 技能图标 (闪电) / Skills icon (zap/lightning)
   skills: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`,
+  // 定时任务图标 (时钟) / Cron icon (clock)
+  cron: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
 };
 
 // 配置区块定义 / Config sections definition
@@ -65,6 +67,12 @@ export const CONFIG_SECTIONS: ConfigSection[] = [
     label: "技能管理",
     icon: "skills",
     description: "管理技能白名单和配置",
+  },
+  {
+    id: "cron",
+    label: "定时任务",
+    icon: "cron",
+    description: "管理定时任务调度",
   },
 ];
 

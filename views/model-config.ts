@@ -20,6 +20,7 @@ import {
   type AgentOption,
 } from "../components/permissions-content";
 import { renderSkillsContent } from "../components/skills-content";
+import { renderCronContent } from "../components/cron-content";
 import type {
   SkillStatusReport,
   SkillsConfig,
@@ -38,6 +39,8 @@ import type {
   ExecApprovalsTargetNode,
 } from "../controllers/model-config";
 import type { ChannelsConfigData } from "../types/channel-config";
+import type { CronJob, CronStatus, CronRunLogEntry, ChannelUiMetaEntry, GatewayAgentRow } from "../../types";
+import type { CronFormState } from "../../ui-types";
 import type {
   ToolPolicyConfig,
   ToolsConfig,
@@ -281,6 +284,38 @@ export type ModelConfigProps = {
   onSkillsDeleteOpen: (skillKey: string, skillName: string, source: EditableSkillSource) => void;
   onSkillsDeleteClose: () => void;
   onSkillsDeleteConfirm: () => void;
+
+  // 定时任务相关 / Cron management props
+  cronLoading: boolean;
+  cronBusy: boolean;
+  cronError: string | null;
+  cronStatus: CronStatus | null;
+  cronJobs: CronJob[];
+  cronForm: CronFormState;
+  cronAgents: GatewayAgentRow[];
+  cronDefaultAgentId: string;
+  cronChannels: string[];
+  cronChannelLabels?: Record<string, string>;
+  cronChannelMeta?: ChannelUiMetaEntry[];
+  cronRunsJobId: string | null;
+  cronRuns: CronRunLogEntry[];
+  cronExpandedJobId: string | null;
+  cronDeleteConfirmJobId: string | null;
+  cronShowCreateModal: boolean;
+  cronEditJobId: string | null;
+  // 定时任务回调
+  onCronFormChange: (patch: Partial<CronFormState>) => void;
+  onCronRefresh: () => void;
+  onCronAdd: () => void;
+  onCronUpdate: () => void;
+  onCronToggle: (job: CronJob, enabled: boolean) => void;
+  onCronRun: (job: CronJob) => void;
+  onCronRemove: (job: CronJob) => void;
+  onCronLoadRuns: (jobId: string) => void;
+  onCronExpandJob: (jobId: string | null) => void;
+  onCronDeleteConfirm: (jobId: string | null) => void;
+  onCronShowCreateModal: (show: boolean) => void;
+  onCronEdit: (job: CronJob) => void;
 };
 
 /**
@@ -455,6 +490,39 @@ function renderContentSection(props: ModelConfigProps, section: string) {
         onDeleteOpen: props.onSkillsDeleteOpen,
         onDeleteClose: props.onSkillsDeleteClose,
         onDeleteConfirm: props.onSkillsDeleteConfirm,
+      });
+
+    case "cron":
+      return renderCronContent({
+        loading: props.cronLoading,
+        busy: props.cronBusy,
+        error: props.cronError,
+        status: props.cronStatus,
+        jobs: props.cronJobs,
+        form: props.cronForm,
+        agents: props.cronAgents,
+        defaultAgentId: props.cronDefaultAgentId,
+        channels: props.cronChannels,
+        channelLabels: props.cronChannelLabels,
+        channelMeta: props.cronChannelMeta,
+        runsJobId: props.cronRunsJobId,
+        runs: props.cronRuns,
+        expandedJobId: props.cronExpandedJobId,
+        deleteConfirmJobId: props.cronDeleteConfirmJobId,
+        showCreateModal: props.cronShowCreateModal,
+        editJobId: props.cronEditJobId,
+        onFormChange: props.onCronFormChange,
+        onRefresh: props.onCronRefresh,
+        onAdd: props.onCronAdd,
+        onUpdate: props.onCronUpdate,
+        onToggle: props.onCronToggle,
+        onRun: props.onCronRun,
+        onRemove: props.onCronRemove,
+        onLoadRuns: props.onCronLoadRuns,
+        onExpandJob: props.onCronExpandJob,
+        onDeleteConfirm: props.onCronDeleteConfirm,
+        onShowCreateModal: props.onCronShowCreateModal,
+        onEdit: props.onCronEdit,
       });
 
     default:

@@ -15,4 +15,4 @@ export type ConfigSection = {
  * workspace - 工作区文件管理（SOUL.md, IDENTITY.md 等）
  * skills - 技能配置管理
  */
-export type ConfigSectionId = "providers" | "agent" | "gateway" | "channels" | "permissions" | "workspace" | "skills";
+export type ConfigSectionId = "providers" | "agent" | "gateway" | "channels" | "permissions" | "workspace" | "skills" | "cron";
